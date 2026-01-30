@@ -17,5 +17,10 @@ const getProduitById = async (id) => {
 
 
 // Récupérer un produit par sa catégorie
+const getProduitByCategory = async (categorie) => {
+    const [rows] = await db.query("SELECT * FROM produit WHERE CATEGORIE = ?", [categorie]); // ici [categorie] est une variable
+    return rows;
+};
 
-module.exports = {getAllProduits, getProduitById};
+
+module.exports = {getAllProduits, getProduitById, getProduitByCategory};

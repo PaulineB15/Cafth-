@@ -11,7 +11,7 @@ require('dotenv').config();
 // Limite le nombre de connexions en même temps
 
 const db = mysql.createPool( {
-// Paremetre de connexion
+// Paramètre de connexion
 
     // (host, nom d'utilisateur, mot de passe, nom de la bdd, ect..)
     host:process.env.DB_HOST,

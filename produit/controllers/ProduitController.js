@@ -1,8 +1,7 @@
 // Controller Produits
-const {getAllProduits, getProduitById} = require("../models/ProduitModel");
+const {getAllProduits, getProduitById, getProduitByCategory} = require("../models/ProduitModel");
 
 // Récupérer tous les produits
-
 const getAll = async (req, res) => {
     try {
       const produit = await getAllProduits();
@@ -21,7 +20,8 @@ const getAll = async (req, res) => {
     }
 };
 
-// Récupérer un article par son ID
+
+// Récupérer un produit par son ID
 const getById = async (req, res) => {
     try {
       //const id = req.params.id;
@@ -51,5 +51,28 @@ const getById = async (req, res) => {
 };
 
 
+// Récupérer un produit par sa catégorie
+const getByCategory = async (req, res) => {
+    try {
+        // Récupérer la catégorie depuis l'URL (req.params)
+        const { categorie } = req.params;
+        // Appeler le modèle avec cette catégorie
+        const produits = await getProduitByCategory(categorie);
 
-module.exports = {getAll, getById};
+        res.json({
+            message:`Articles de la categorie ${categorie}`,
+            count: produits.length,
+            produits,
+        });
+
+
+    } catch(error) {
+        console.error("Erreur de récupération par catégorie", error.message);
+        res.status(500).json({
+            message: "Erreur de récupération des produits",
+        });
+    }
+};
+
+
+module.exports = {getAll, getById, getByCategory};

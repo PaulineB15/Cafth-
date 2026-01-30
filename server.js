@@ -9,6 +9,7 @@ const {methods} = require("express/lib/utils");
 
 //====Importation des routes ===
 const produitRoutes = require('./produit/routes/ProduitRouter');
+const clientRoutes = require('./client/routes/clientRouter');
 
 
 // Création de l'application Express
@@ -46,6 +47,7 @@ app.get("/health", (req, res) => {
 
 // Routes de l'API
 app.use("/api/produits", produitRoutes);
+app.use("/api/clients", clientRoutes);
 
 // GESTIONS DES ERREURS
 // Routes 404
