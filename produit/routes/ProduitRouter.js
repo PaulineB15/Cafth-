@@ -7,7 +7,7 @@ const {verifyToken} = require("../../middleware/authMiddleware");
 const router = express.Router();
 
 // GET /api/produits - Récupérer tous les produits
-router.get("/", verifyToken, getAll);
+router.get("/", getAll);
 
 // GET /api/produits/:id - Récuperer un produit par son id
 router.get("/:id", getById);
