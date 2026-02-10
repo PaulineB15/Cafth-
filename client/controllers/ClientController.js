@@ -1,7 +1,7 @@
 // Contrôleur client
 
 // On importe les fonctions qui parlent à la base de données (le Model)
-const {createClient, findClientByEmail, hashPassword, comparedPassword} = require("../models/ClientModel");
+const {createClient, findClientByEmail, hashPassword, comparedPassword, findClientById} = require("../models/ClientModel");
 // On importe l'outil pour créer le "badge VIP" (le token)
 const jwt = require("jsonwebtoken"); // npm instal jsonwebtoken
 
@@ -91,13 +91,26 @@ const login = async (req, res) => {
         // 4. Création du Pass VIP (Le Token JWT)
         // C'est un badge numérique signé que le client gardera pour prouver qu'il est connecté
         // Générer le token JWT
+        // Expire en secondes
+        const expire = parseInt(process.env.JWT_EXPIRE_IN, 10) || 3600;
         const token = jwt.sign({
                 id: client.ID_CLIENT, // On cache l'ID dans le badge
             email: client.EMAIL_CLIENT, // On cache l'email dans le badge'
             },
-            process.env.JWT_SECRET, // Signer avec notre clé secrète (dans le fichier .env)
+            process.env.JWT_SECRET,
+            { expiresIn: expire }
+            // Signer avec notre clé secrète (dans le fichier .env)
             //{expiresIn: process.env.JWT_EXPIRE_IN || "1h"},
         );
+
+        // On place le token dans un cookie HTTP only
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false, // Mettre sur true en HTTPS lors du déploiement
+            sameSite: "lax",
+            maxAge: expire * 1000,
+        });
+
 
         // 5. On renvoie le badge au client
         res.json({
@@ -109,8 +122,8 @@ const login = async (req, res) => {
                 prenom: client.PRENOM_CLIENT,
                 email: client.EMAIL_CLIENT,
             },
-
         });
+
 
 
 } catch (error){
@@ -119,6 +132,44 @@ const login = async (req, res) => {
         message: "Erreur lors de l'inscription",
     });
 }
-
 };
-module.exports = {register, login};
+
+// Fonction de déconnexion
+const logout = (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: false, // Mettre sur true en HTTPS lors du déploiement
+        sameSite: "lax"
+    });
+    res.json({ message: "Déconnexion réussie" });
+};
+
+// Automatiquement, le navigateur envoie le cookie
+// le middleware vérifie que le cookie est valide / JWT valide
+// Si le token est valide, on retourne les infos du client
+const getMe = async (req, res) => {
+    try {
+        // req.client.id vient du JWT decode par le middleware verifyToken
+        const clients = await findClientById(req.client.id);
+
+        if (clients.length === 0) {
+            return res.status(404).json({ message: "Client introuvable" });
+        }
+
+        const client = clients[0];
+
+        res.json({
+            client: {
+                id: client.NUMERO_CLIENTS,
+                nom: client.NOM,
+                prenom: client.PRENOM,
+                email: client.EMAIL,
+            }
+        });
+    } catch (error) {
+        console.error("Erreur /me:", error.message);
+        res.status(500).json({ message: "Erreur lors de la vérification de session" });
+    }
+};
+
+module.exports = {register, login, logout, getMe};

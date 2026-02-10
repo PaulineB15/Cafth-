@@ -4,6 +4,21 @@
 const db = require("../../db");
 // Import bcrypt pour hacher le mot de passe
 const bcrypt = require("bcryptjs");
+// RECHERCHER UN CLIENT PAR ID
+// const findClientById = async (id) => {
+//     const [rows] = await db.query("SELECT * FROM client WHERE ID_CLIENT = ?", [id]);
+//     return rows;
+// };
+
+// RECHERCHER UN CLIENT PAR ID
+const findClientById = async (id) => {
+    const [rows] = await db.query(
+        "SELECT * FROM clients WHERE NUMERO_CLIENT = ?",
+        [id]
+    );
+    return rows;
+};
+
 
 // RECHERCHER UN CLIENT PAR EMAIL
 const findClientByEmail = async (email) => {
@@ -71,4 +86,4 @@ const comparedPassword = async (password, hash) => {
 
 
 
-module.exports = {findClientByEmail, createClient, hashPassword, comparedPassword};
+module.exports = {findClientByEmail, createClient, hashPassword, comparedPassword, findClientById};

@@ -3,7 +3,19 @@
 
 const express = require("express"); // Express framework qui fait tourner le serveur
 const router = express.Router(); // Router pour gérer les routes liées aux clients (panneau signalisation)
-const {register, login} = require("../controllers/ClientController"); // Importation des fonctions de gestion des clients
+const {register, login, logout, getMe} = require("../controllers/ClientController");
+const {verifyToken} = require("../../middleware/authMiddleware"); // Importation des fonctions de gestion des clients
+
+
+// Vérification de session du client
+// Route protégée
+// GET / api/clients/moi
+router.get("/moi", verifyToken, getMe);
+
+// Déconnexion
+// Route protégée
+// POST api/clients/logout
+router.post("/logout", logout);
 
 
 // INSCRIPTION D'UN CLIENT

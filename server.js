@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config(); // Permet de charger les variables d'environnement depuis .env
+const cookieParser = require('cookie-parser');
 
 // Connexion à la base de donnée
 const db = require('./db');
@@ -28,15 +29,19 @@ app.use(morgan('dev'));
 app.use(express.static('public'));
 
 
-// Configurer Cors = permet les requetes cross-origin qui viennent du front
+// Configurer Cors = permet les requêtes cross-origin qui viennent du front
 // CORS = Cross-Origin Ressource Sharing
 // OBLIGATOIRE  sinon le navigateur bloque les requêtes
 app.use(
     cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
         methods: ["GET","PUT","POST","DELETE"],
+        credentials: true, // Utiliser les cookies cross-origin (2 applications qui communiquent entre elles)
 }),
 );
+
+// Parse les cookies dans req
+app.use (cookieParser());
 
 
 // ROUTES
