@@ -13,7 +13,7 @@ const bcrypt = require("bcryptjs");
 // RECHERCHER UN CLIENT PAR ID
 const findClientById = async (id) => {
     const [rows] = await db.query(
-        "SELECT * FROM clients WHERE NUMERO_CLIENT = ?",
+        "SELECT * FROM client WHERE ID_CLIENT = ?",
         [id]
     );
     return rows;

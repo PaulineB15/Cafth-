@@ -160,10 +160,10 @@ const getMe = async (req, res) => {
 
         res.json({
             client: {
-                id: client.NUMERO_CLIENTS,
-                nom: client.NOM,
-                prenom: client.PRENOM,
-                email: client.EMAIL,
+                id: client.ID_CLIENT,
+                nom: client.NOM_CLIENT,
+                prenom: client.PRENOM_CLIENT,
+                email: client.EMAIL_CLIENT,
             }
         });
     } catch (error) {
