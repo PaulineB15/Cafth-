@@ -11,8 +11,15 @@ const register = async (req, res) => {
     try {
         // 1. On récupère ce que l'utilisateur a tapé dans le formulaire (ou Postman)
         // "req.body" contient le JSON envoyé
-      const { nom, prenom, email, mot_de_passe} = req.body;
+      const { nom, prenom, email, mot_de_passe } = req.body;
 
+
+      // 1.1 SECURITE DE LA LONGUEUR DU MOT DE PASSE (12 caractères minimum)
+      if (mot_de_passe.length < 12) {
+        return res.status(400).json({
+            message: "Le mot de passe doit contenir au moins 12 caractères"
+        });
+      }
 
       // 2. Sécurité: Vérifier si l'email existe déja
         const existingClient = await findClientByEmail(email);
@@ -37,6 +44,7 @@ const register = async (req, res) => {
           nom,
             prenom,
             email,
+            tel, // Ajout du tel pour la création du compte
             mot_de_passe: hash,
         });
 
@@ -121,6 +129,11 @@ const login = async (req, res) => {
                 nom: client.NOM_CLIENT,
                 prenom: client.PRENOM_CLIENT,
                 email: client.EMAIL_CLIENT,
+                // Ces données sont un rappel necessaire lors du tunnel achat
+                tel: client.TEL_CLIENT,
+                adresse_livraison: client.ADRESSE_LIVRAISON,
+                cp_livraison: client.CP_LIVRAISON,
+                ville_livraison: client.VILLE_LIVRAISON
             },
         });
 
@@ -164,6 +177,10 @@ const getMe = async (req, res) => {
                 nom: client.NOM_CLIENT,
                 prenom: client.PRENOM_CLIENT,
                 email: client.EMAIL_CLIENT,
+                tel: client.TEL_CLIENT,
+                adresse_livraison: client.ADRESSE_LIVRAISON,
+                cp_livraison: client.CP_LIVRAISON,
+                ville_livraison: client.VILLE_LIVRAISON
             }
         });
     } catch (error) {
