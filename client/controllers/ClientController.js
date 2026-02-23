@@ -1,7 +1,7 @@
 // Contrôleur client
 
 // On importe les fonctions qui parlent à la base de données (le Model)
-const {createClient, findClientByEmail, hashPassword, comparedPassword, findClientById} = require("../models/ClientModel");
+const {createClient, findClientByEmail, hashPassword, comparedPassword, findClientById, updateClient, updatePassword} = require("../models/ClientModel");
 // On importe l'outil pour créer le "badge VIP" (le token)
 const jwt = require("jsonwebtoken"); // npm instal jsonwebtoken
 
@@ -11,7 +11,7 @@ const register = async (req, res) => {
     try {
         // 1. On récupère ce que l'utilisateur a tapé dans le formulaire (ou Postman)
         // "req.body" contient le JSON envoyé
-      const { nom, prenom, email, mot_de_passe } = req.body;
+      const { email, mot_de_passe } = req.body;
 
 
       // 1.1 SECURITE DE LA LONGUEUR DU MOT DE PASSE (12 caractères minimum)
@@ -40,11 +40,12 @@ const register = async (req, res) => {
         // 4. On demande au Model d'inscrire le client dans la base de données
         // Note : on envoie 'hash' et non le vrai mot de passe
         // Créer le client
+        // Null pour les champs qu'on ne demande pas à l'inscription
         const result = await createClient( {
-          nom,
-            prenom,
-            email,
-            tel, // Ajout du tel pour la création du compte
+          nom: null,
+            prenom: null,
+            tel: null,
+            email: email,
             mot_de_passe: hash,
         });
 
@@ -52,7 +53,6 @@ const register = async (req, res) => {
         res.status(201).json({
             message: "Inscription réussie",
             client_id: result.insertId, // L'ID que la base de données a donné
-            client: {nom, prenom, email},
         });
 
         } catch (error){
@@ -133,7 +133,11 @@ const login = async (req, res) => {
                 tel: client.TEL_CLIENT,
                 adresse_livraison: client.ADRESSE_LIVRAISON,
                 cp_livraison: client.CP_LIVRAISON,
-                ville_livraison: client.VILLE_LIVRAISON
+                ville_livraison: client.VILLE_LIVRAISON,
+                // Ces données sont un rappel necessaire pour le compte client (espace personnel)
+                adresse_facturation: client.ADRESSE_FACTURATION,
+                cp_facturation: client.CP_FACTURATION,
+                ville_facturation: client.VILLE_FACTURATION
             },
         });
 
@@ -180,13 +184,136 @@ const getMe = async (req, res) => {
                 tel: client.TEL_CLIENT,
                 adresse_livraison: client.ADRESSE_LIVRAISON,
                 cp_livraison: client.CP_LIVRAISON,
-                ville_livraison: client.VILLE_LIVRAISON
+                ville_livraison: client.VILLE_LIVRAISON,
+                adresse_facturation: client.ADRESSE_FACTURATION,
+                cp_facturation: client.CP_FACTURATION,
+                ville_facturation: client.VILLE_FACTURATION
             }
         });
     } catch (error) {
         console.error("Erreur /me:", error.message);
         res.status(500).json({ message: "Erreur lors de la vérification de session" });
     }
+
 };
 
-module.exports = {register, login, logout, getMe};
+// METTRE A JOUR LE PROFIL DU CLIENT CONNECTÉ
+const updateMe = async (req, res) => {
+    try {
+        // L'ID du client vient du token sécurisé (verifyToken), pas de l'URL !
+        const clientId = req.client.id;
+
+        // On appelle le Model pour mettre à jour
+        await updateClient(clientId, req.body);
+
+        res.json({ message: "Informations mises à jour avec succès" });
+    } catch (error) {
+        console.error("Erreur updateMe:", error.message);
+        res.status(500).json({ message: "Erreur lors de la mise à jour du profil" });
+    }
+};
+
+
+// MODIFIER LE MOT DE PASSE DU CLIENT CONNECTÉ
+const changePassword = async (req, res) => {
+    try {
+        const clientId = req.client.id;
+        const { actuel, nouveau } = req.body;
+
+        // 1. Récupérer le client en BDD pour avoir son mot de passe actuel
+        const clients = await findClientById(clientId);
+        if (clients.length === 0) return res.status(404).json({ message: "Client introuvable" });
+        const client = clients[0];
+
+        // 2. Vérifier si l'ancien mot de passe tapé correspond
+        const isMatch = await comparedPassword(actuel, client.MDP_CLIENT);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Le mot de passe actuel est incorrect." });
+        }
+
+        // 3. Vérifier la longueur du nouveau mot de passe
+        if (nouveau.length < 12) {
+            return res.status(400).json({ message: "Le nouveau mot de passe doit faire au moins 12 caractères." });
+        }
+
+        // 4. Hacher le nouveau mot de passe et sauvegarder
+        const hash = await hashPassword(nouveau);
+        await updatePassword(clientId, hash);
+
+        res.json({ message: "Mot de passe modifié avec succès !" });
+
+    } catch (error) {
+        console.error("Erreur changePassword:", error.message);
+        res.status(500).json({ message: "Erreur lors de la modification du mot de passe" });
+    }
+
+};
+
+// MOT DE PASSE OUBLIÉ - ETAPE 1 (Demande de lien)
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const clients = await findClientByEmail(email);
+
+        if (clients.length > 0) {
+            const client = clients[0];
+
+            // Génère un Token valable seulement 15 minutes
+            const resetToken = jwt.sign(
+                { id: client.ID_CLIENT },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' }
+            );
+
+            // OPTION B : On simule l'email en affichant le lien dans la console Node.js !
+            const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+            console.log("\n========================================================");
+            console.log(" 📧 SIMULATION D'ENVOI D'EMAIL (Mot de passe oublié)");
+            console.log(` Destinataire : ${email}`);
+            console.log(` Lien de réinitialisation : ${resetLink}`);
+            console.log("========================================================\n");
+        }
+
+        // Par sécurité informatique, on renvoie TOUJOURS ce message, même si l'email n'existe pas.
+        // Ça empêche les hackers de tester quelles adresses emails sont inscrites sur ton site.
+        res.json({ message: "Si cette adresse existe, un lien de réinitialisation a été envoyé." });
+
+    } catch (error) {
+        console.error("Erreur forgotPassword:", error);
+        res.status(500).json({ message: "Erreur technique." });
+    }
+};
+
+// RÉINITIALISATION DU MOT DE PASSE - ETAPE 2 (Après clic sur le lien)
+const resetPassword = async (req, res) => {
+    try {
+        const { token, nouveauMotDePasse } = req.body;
+
+        if (nouveauMotDePasse.length < 12) {
+            return res.status(400).json({ message: "Le mot de passe doit contenir au moins 12 caractères." });
+        }
+
+        let decoded;
+        try {
+            // On vérifie si le Token du lien est toujours valide
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(400).json({ message: "Ce lien est invalide ou a expiré." });
+        }
+
+        // Si c'est bon, on hache le nouveau mot de passe et on met à jour !
+        const hash = await hashPassword(nouveauMotDePasse);
+        await updatePassword(decoded.id, hash);
+
+        res.json({ message: "Votre mot de passe a été réinitialisé avec succès !" });
+
+    } catch (error) {
+        console.error("Erreur resetPassword:", error);
+        res.status(500).json({ message: "Erreur technique lors de la réinitialisation." });
+    }
+};
+
+
+
+module.exports = {register, login, logout, getMe, updateMe, changePassword, forgotPassword, resetPassword};

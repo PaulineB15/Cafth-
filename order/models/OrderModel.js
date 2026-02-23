@@ -31,9 +31,18 @@ const createOrder = async (orderData) => {
 // FONCTION POUR RECUPERER L'HISTORIQUE DES COMMANDES D'UN CLIENT
 // Elle doit être en dehors de la 1ere fonction "Créer une commande"
 const getOrderByIdClient = async (id_client) => {
-    // Selection de toutes les commandes de ce client
+    // Selection des commandes avec le calcul du nombre total d'articles (SUM)
+    // On fait une jointure (LEFT JOIN) avec la table 'contenir' pour lire les quantités
     // Trie par date décroissante (DESC) pour voir la plus récente en premier
-    const [rows] = await db.query("SELECT * FROM commande WHERE ID_CLIENT = ? ORDER BY DATE_COMMANDE DESC", [id_client]);
+    const [rows] = await db.query(
+        `SELECT c.*, SUM(ct.QUANTITE_COMMANDEE) AS total_articles 
+         FROM commande c 
+         LEFT JOIN contenir ct ON c.ID_COMMANDE = ct.ID_COMMANDE 
+         WHERE c.ID_CLIENT = ? 
+         GROUP BY c.ID_COMMANDE 
+         ORDER BY c.DATE_COMMANDE DESC`,
+        [id_client]
+    );
     return rows;
 };
 

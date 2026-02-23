@@ -85,5 +85,55 @@ const comparedPassword = async (password, hash) => {
 };
 
 
+// METTRE A JOUR LES INFORMATIONS D'UN CLIENT
+const updateClient = async (id, clientData) => {
+    const {
+        nom, prenom, tel, email,
+        adresse_facturation, cp_facturation, ville_facturation,
+        adresse_livraison, cp_livraison, ville_livraison
+    } = clientData;
 
-module.exports = {findClientByEmail, createClient, hashPassword, comparedPassword, findClientById};
+    const [result] = await db.query(
+        `UPDATE client SET 
+            NOM_CLIENT = ?, 
+            PRENOM_CLIENT = ?, 
+            TEL_CLIENT = ?, 
+            EMAIL_CLIENT = ?,
+            ADRESSE_FACTURATION = ?, 
+            CP_FACTURATION = ?, 
+            VILLE_FACTURATION = ?,
+            ADRESSE_LIVRAISON = ?, 
+            CP_LIVRAISON = ?, 
+            VILLE_LIVRAISON = ?
+        WHERE ID_CLIENT = ?`,
+        [
+            nom || null,
+            prenom || null,
+            tel || null,
+            email,
+            adresse_facturation || null,
+            cp_facturation || null,
+            ville_facturation || null,
+            adresse_livraison || null,
+            cp_livraison || null,
+            ville_livraison || null,
+            id
+        ]
+    );
+    return result;
+};
+
+// METTRE A JOUR LE MOT DE PASSE D'UN CLIENT
+const updatePassword = async (id, newHashedPassword) => {
+    const [result] = await db.query(
+        "UPDATE client SET MDP_CLIENT = ? WHERE ID_CLIENT = ?",
+        [newHashedPassword, id]
+    );
+    return result;
+
+
+
+
+};
+
+module.exports = {findClientByEmail, createClient, hashPassword, comparedPassword, findClientById, updateClient, updatePassword};

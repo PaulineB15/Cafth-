@@ -3,7 +3,7 @@
 
 const express = require("express"); // Express framework qui fait tourner le serveur
 const router = express.Router(); // Router pour gérer les routes liées aux clients (panneau signalisation)
-const {register, login, logout, getMe} = require("../controllers/ClientController");
+const {register, login, logout, getMe, updateMe, changePassword, forgotPassword, resetPassword} = require("../controllers/ClientController");
 const {verifyToken} = require("../../middleware/authMiddleware"); // Importation des fonctions de gestion des clients
 
 
@@ -11,6 +11,17 @@ const {verifyToken} = require("../../middleware/authMiddleware"); // Importation
 // Route protégée
 // GET / api/clients/moi
 router.get("/moi", verifyToken, getMe);
+
+
+// Mise à jour des infos du client
+// Route protégée (verifyToken obligatoire !)
+// PUT /api/clients/moi
+router.put("/moi", verifyToken, updateMe);
+
+// Modification du mot de passe
+// PUT /api/clients/password
+router.put("/password", verifyToken, changePassword);
+
 
 // Déconnexion
 // Route protégée
@@ -46,5 +57,12 @@ router.post( "/register", register); // Active la fonction register du Controlle
 } */
 
 router.post( "/login", login);
+
+
+// MOT DE PASSE OUBLIE: Envoi du lien
+router.post("/forgot-password", forgotPassword);
+
+// MOT DE PASSE OUBLIE: Réinitialisation du mot de passe
+router.put("/reset-password", resetPassword);
 
 module.exports = router;
