@@ -30,11 +30,14 @@ const createOrder = async (orderData) => {
 
 // FONCTION POUR RECUPERER L'HISTORIQUE DES COMMANDES D'UN CLIENT
 // Elle doit être en dehors de la 1ere fonction "Créer une commande"
+
 const getOrderByIdClient = async (id_client) => {
+    // ÉTAPE 1 : Récupération des commandes globales
+
     // Selection des commandes avec le calcul du nombre total d'articles (SUM)
     // On fait une jointure (LEFT JOIN) avec la table 'contenir' pour lire les quantités
     // Trie par date décroissante (DESC) pour voir la plus récente en premier
-    const [rows] = await db.query(
+    const [orders] = await db.query(
         `SELECT c.*, SUM(ct.QUANTITE_COMMANDEE) AS total_articles 
          FROM commande c 
          LEFT JOIN contenir ct ON c.ID_COMMANDE = ct.ID_COMMANDE 
@@ -43,7 +46,31 @@ const getOrderByIdClient = async (id_client) => {
          ORDER BY c.DATE_COMMANDE DESC`,
         [id_client]
     );
-    return rows;
+
+    // ÉTAPE 2 : Pour chaque commande trouvée, on va chercher le détail des produits
+    for (let order of orders) {
+        // On fait une jointure entre "contenir" (qui a la quantité) et "produit" (qui a le nom et le prix)
+        const [produits] = await db.query(
+            `SELECT 
+                p.ID_PRODUIT as id, 
+                p.NOM_PRODUIT as nom, 
+                p.PRIX_TTC as prix, 
+                p.IMAGES as image,
+                p.CATEGORIE as categorie,
+                p.TYPE_VENTE as type_vente,
+                ct.QUANTITE_COMMANDEE as quantite
+             FROM contenir ct
+             JOIN produit p ON ct.ID_PRODUIT = p.ID_PRODUIT
+             WHERE ct.ID_COMMANDE = ?`,
+            [order.ID_COMMANDE]
+        );
+
+        // On attache ce tableau de produits à notre objet commande !
+        order.produits = produits;
+    }
+
+    return orders;
+
 };
 
 module.exports = {createOrder, getOrderByIdClient};
